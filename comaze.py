@@ -1,22 +1,36 @@
+import os
 import requests
 import time
 
 
 class CoMaze:
-  API_URL = "http://teamwork.vs.uni-kassel.de:16216"
-  WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
-  LIB_VERSION = "0.0.1"
+  if os.path.isfile(".local"):
+    API_URL = "http://localhost:16216"
+    WEBAPP_URL = "http://localhost"
+  else:
+    API_URL = "http://teamwork.vs.uni-kassel.de:16216"
+    WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
+  LIB_VERSION = "1.1.0"
 
   def next_move(self, game, player):
     return ":("
 
-  def play_new_game(self, options=None):
-    if options is None:
-      options = {}
+  def play_new_game(self, options={}):
     level = options.get("level", "1")
     num_of_player_slots = options.get("num_of_player_slots", "2")
-    player_name = options.get("player_name", "Python")
     game_id = requests.post(self.API_URL + "/game/create?level=" + level + "&numOfPlayerSlots=" + num_of_player_slots).json()["uuid"]
+    options["game_id"] = game_id
+    self.play_existing_game(options)
+
+  def play_existing_game(self, options={}):
+    if "look_for_player_name" in options:
+      options["game_id"] = requests.get(self.API_URL + "/game/byPlayerName?playerName=" + options["look_for_player_name"]).json()["uuid"]
+
+    if "game_id" not in options or len(options["game_id"]) != 36:
+      raise Exception("You must provide a game id when attending an existing game. Use play_new_game() instead of play_existing_game() if you want to create a new game.")
+
+    player_name = options.get("player_name", "Python")
+    game_id = options["game_id"]
     player = requests.post(self.API_URL + "/game/" + game_id + "/attend?playerName=" + player_name).json()
     print("Joined gameId: " + game_id)
     print("Playing as playerId: " + player["uuid"])
