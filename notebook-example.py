@@ -21,7 +21,7 @@ class CustomCoMaze(CoMaze):
 #   "game_id": "2d4e4d82-6417-489f-b9b1-ed4c0b801b6f"
 # })
 
-# Example 3: Attend a looking for another player's name
+# Example 3: Attend a game looking for another player's name
 # CustomCoMaze().play_existing_game({
 #   "look_for_player_name": "Alice"
 # })
