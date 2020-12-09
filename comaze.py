@@ -60,7 +60,7 @@ class CoMaze:
       if type(next_move) == str:
         action = next_move
       elif type(next_move) == dict:
-        action = next_move.get("direction")
+        action = next_move.get("action")
         symbol_message = next_move.get("symbol_message")
 
       print("Moving " + action)
