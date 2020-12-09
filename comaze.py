@@ -10,7 +10,7 @@ class CoMaze:
   else:
     API_URL = "http://teamwork.vs.uni-kassel.de:16216"
     WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
-  LIB_VERSION = "1.1.0"
+  LIB_VERSION = "1.3.0"
 
   def next_move(self, game, player):
     return ":("
@@ -52,9 +52,24 @@ class CoMaze:
         time.sleep(1)
         continue
 
-      direction = self.next_move(game, player)
-      print("Moving " + direction)
-      requests.post(self.API_URL + "/game/" + game_id + "/move?playerId=" + player["uuid"] + "&action=" + direction)
+      next_move = self.next_move(game, player)
+
+      # next_move can be a direction/skip string (maintaining compatibility with APIs <= 1.1) or a dict containing direction and an optional symbolMessage
+      action = None
+      symbol_message = None
+      if type(next_move) == str:
+        action = next_move
+      elif type(next_move) == dict:
+        action = next_move.get("direction")
+        symbol_message = next_move.get("symbol_message")
+
+      print("Moving " + action)
+      request_url = self.API_URL + "/game/" + game_id + "/move"
+      request_url += "?playerId=" + player["uuid"]
+      request_url += "&action=" + action
+      if symbol_message:
+        request_url += "&symbolMessage=" + symbol_message
+      requests.post(request_url)
 
     if game["state"]["won"]:
       print("Game won!")
