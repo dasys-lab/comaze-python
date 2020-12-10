@@ -44,7 +44,7 @@ class CoMaze:
     while not game["state"]["over"]:
       game = requests.get(self.API_URL + "/game/" + game_id).json()
 
-      while not game["state"]["started"]:
+      if not game["state"]["started"]:
         print("Waiting for players. (Invite someone: " + self.WEBAPP_URL + "/?gameId=" + game_id + ")")
         time.sleep(3)
         continue
