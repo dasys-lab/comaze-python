@@ -1,6 +1,7 @@
 import os
 import requests
 import time
+import gym
 
 
 class CoMaze:
@@ -62,15 +63,15 @@ class CoMaze:
       print("Game lost (" + game["state"]["lostMessage"] + ").")
 
 
-class CoMazeGym:
+class CoMazeGym(gym.Env):
   if os.path.isfile(".local"):
     API_URL = "http://localhost:16216"
     WEBAPP_URL = "http://localhost"
   else:
     API_URL = "http://teamwork.vs.uni-kassel.de:16216"
     WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
-  LIB_VERSION = "1.1.0"
-
+  LIB_VERSION = "1.3.0"
+  
   def __init__(self):
     self.game = None
     self.game_id = None
@@ -80,8 +81,12 @@ class CoMazeGym:
   def reset(self, options={}):
     level = options.get("level", "1")
     num_of_player_slots = options.get("num_of_player_slots", "2")
-    self.game_id = requests.post(self.API_URL + "/game/create?level=" + level + "&numOfPlayerSlots=" + num_of_player_slots).json()["uuid"]
-    options["game_id"] = self.game_id
+    
+    self.game_id = options.get("game_id", None)
+    if self.game_id is None:
+      self.game_id = requests.post(self.API_URL + "/game/create?level=" + level + "&numOfPlayerSlots=" + num_of_player_slots).json()["uuid"]
+      options["game_id"] = self.game_id
+    
     return self.play_existing_game(options)
 
   def play_existing_game(self, options={}):
@@ -101,8 +106,10 @@ class CoMazeGym:
     self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
     print(f'Action Space is {self.action_space}')
 
-    while self.game['currentPlayer']['uuid'] != self.player_id:
-      print(f'Waiting for other player to make first move')
+    while self.game['currentPlayer']['uuid'] != self.player_id or len(self.game["players"]) < 2:
+      if self.game['currentPlayer']['uuid'] != self.player_id:
+        print(f'Waiting for other player to make first move')
+      print("(Invite someone: " + self.WEBAPP_URL + "/?gameId=" + self.game_id + " )")
       time.sleep(1)
       self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
 
@@ -114,16 +121,29 @@ class CoMazeGym:
       self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
 
       if not self.game["state"]["started"]:
-        print("Waiting for players. (Invite someone: " + self.WEBAPP_URL + "/?gameId=" + self.game_id + ")")
+        print("Waiting for players. (Invite someone: " + self.WEBAPP_URL + "/?gameId=" + self.game_id + " )")
         time.sleep(3)
         continue
-
+      available_actions = self.game["currentPlayer"]["directions"]+["SKIP"]
+      if action not in available_actions:
+        print(f"WARNING: Action {action} is not available to the current player.")
+        action = "SKIP"
       print("Moving " + action)
-      print(f'Sending message {message}')
+      if action == "SKIP":
+        print(f'Wanted to send message {message}, but skipped.')
+        message = None
+      else:
+        print(f'Sending message {message}.')
       print('---')
-      self.game = requests.post(self.API_URL + "/game/" + self.game_id + "/move?playerId=" + self.player_id + "&action=" + action).json()
+      request_url = self.API_URL + "/game/" + self.game_id + "/move"
+      request_url += "?playerId=" + self.player_id
+      request_url += "&action=" + action
+      if message is not None and action != 'SKIP':
+        request_url += "&symbolMessage=" + message
+      print(request_url)
+      self.game = requests.post(request_url).json()
       moved = True
-
+    
     if self.game["state"]["won"]:
       print("Game won!")
       reward = 1
@@ -141,3 +161,4 @@ class CoMazeGym:
         self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
 
     return self.game, reward, self.game["state"]["over"], None
+    
