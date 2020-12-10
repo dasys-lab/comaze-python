@@ -1,1 +1,1 @@
-from rl_comaze import RLCoMaze
+from .rl_comaze import RLCoMaze

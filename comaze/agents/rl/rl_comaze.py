@@ -2,6 +2,8 @@ import os
 import requests
 import time
 import gym
+from gym.spaces import Box, Discrete, Dict, MultiBinary, MultiDiscrete
+
 
 from comaze.env import CoMaze 
 from comaze.utils.gym_wrappers import CoMazeGymDictObsActionWrapper
