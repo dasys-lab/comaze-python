@@ -2,8 +2,9 @@ import os
 import requests
 import time
 
+from .logging_abstract_env import LoggingAbstractEnv 
 
-class CoMaze:
+class CoMaze(LoggingAbstractEnv):
   if os.path.isfile(".local"):
     API_URL = "http://localhost:16216"
     WEBAPP_URL = "http://localhost"
@@ -11,6 +12,11 @@ class CoMaze:
     API_URL = "http://teamwork.vs.uni-kassel.de:16216"
     WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
   LIB_VERSION = "1.3.0"
+  
+  def __init__(self, logging_base_path="./logs/games/"):
+    super(CoMaze, self).__init__(logging_base_path=logging_base_path)
+    self.game_id = None 
+    self.player_id = None
 
   def next_move(self, game, player):
     return ":("
@@ -18,8 +24,8 @@ class CoMaze:
   def play_new_game(self, options={}):
     level = options.get("level", "1")
     num_of_player_slots = options.get("num_of_player_slots", "2")
-    game_id = requests.post(self.API_URL + "/game/create?level=" + level + "&numOfPlayerSlots=" + num_of_player_slots).json()["uuid"]
-    options["game_id"] = game_id
+    self.game_id = requests.post(self.API_URL + "/game/create?level=" + level + "&numOfPlayerSlots=" + num_of_player_slots).json()["uuid"]
+    options["game_id"] = self.game_id
     self.play_existing_game(options)
 
   def play_existing_game(self, options={}):
@@ -30,11 +36,16 @@ class CoMaze:
       raise Exception("You must provide a game id when attending an existing game. Use play_new_game() instead of play_existing_game() if you want to create a new game.")
 
     player_name = options.get("player_name", "Python")
-    game_id = options["game_id"]
-    player = requests.post(self.API_URL + "/game/" + game_id + "/attend?playerName=" + player_name).json()
-    print("Joined gameId: " + game_id)
-    print("Playing as playerId: " + player["uuid"])
-    self.game_loop(game_id, player)
+    self.game_id = options["game_id"]
+    player = requests.post(self.API_URL + "/game/" + self.game_id + "/attend?playerName=" + player_name).json()
+    self.player_id = player["uuid"]
+
+    print("Joined gameId: " + self.game_id)
+    print("Playing as playerId: " + self.player_id)
+
+    self._init_logger()
+
+    self.game_loop(self.game_id, player)
 
   def game_loop(self, game_id, player):
     game = requests.get(self.API_URL + "/game/" + game_id).json()
@@ -71,13 +82,19 @@ class CoMaze:
         request_url += "&symbolMessage=" + symbol_message
       requests.post(request_url)
 
-    if game["state"]["won"]:
-      print("Game won!")
-    elif game["state"]["lost"]:
-      print("Game lost (" + game["state"]["lostMessage"] + ").")
+      if game["state"]["won"]:
+        print("Game won!")
+        reward = 1
+      elif game["state"]["lost"]:
+        print("Game lost (" + game["state"]["lostMessage"] + ").")
+        reward = -1
+      else:
+        reward = 0
+
+      self._log(action=action, message=symbol_message, reward=reward)
 
 
-class CoMazeGym:
+class CoMazeGym(LoggingAbstractEnv):
   if os.path.isfile(".local"):
     API_URL = "http://localhost:16216"
     WEBAPP_URL = "http://localhost"
@@ -85,13 +102,14 @@ class CoMazeGym:
     API_URL = "http://teamwork.vs.uni-kassel.de:16216"
     WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
   LIB_VERSION = "1.1.0"
-
-  def __init__(self):
+  
+  def __init__(self, logging_base_path="./logs/games/"):
+    super(CoMazeGym, self).__init__(logging_base_path=logging_base_path)
     self.game = None
     self.game_id = None
     self.player_id = None
     self.action_space = None
-
+    
   def reset(self, options={}):
     level = options.get("level", "1")
     num_of_player_slots = options.get("num_of_player_slots", "2")
@@ -115,12 +133,13 @@ class CoMazeGym:
     print("Playing as playerId: " + self.player_id)
     self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
     print(f'Action Space is {self.action_space}')
-
     while self.game['currentPlayer']['uuid'] != self.player_id:
       print(f'Waiting for other player to make first move')
       time.sleep(1)
       self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
-
+    
+    self._init_logger()
+    
     return self.game
 
   def step(self, action, message=None):
@@ -138,7 +157,7 @@ class CoMazeGym:
       print('---')
       self.game = requests.post(self.API_URL + "/game/" + self.game_id + "/move?playerId=" + self.player_id + "&action=" + action).json()
       moved = True
-
+    
     if self.game["state"]["won"]:
       print("Game won!")
       reward = 1
@@ -147,12 +166,15 @@ class CoMazeGym:
       reward = -1
     else:
       reward = 0
-
+    
     if not self.game["state"]["over"]:
       # wait for other player to make a move before sending back obs
       while self.game['currentPlayer']['uuid'] != self.player_id:
         print(f'Waiting for other player to make a move')
         time.sleep(1)
         self.game = requests.get(self.API_URL + "/game/" + self.game_id).json()
-
+    
+    self._log(action=action, message=message, reward=reward)
+    
     return self.game, reward, self.game["state"]["over"], None
+    
