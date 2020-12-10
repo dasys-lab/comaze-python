@@ -163,7 +163,9 @@ def extract_move_fn(action):
   ['Q','W','E','R','T','Y','U','I','O','P']).
   """
   global DiscreteActionMoveExtractor
+  
   move = DiscreteActionMoveExtractor.extract_move(action)
+
   return move
 
 class RLCoMaze(CoMaze):
