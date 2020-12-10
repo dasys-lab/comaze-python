@@ -10,16 +10,15 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as readme:
 
 setup(
     name='comaze',
-    version='1.3.0',
+    version='0.0.1',
     description='Framework to carry out Zero-Shot Emergent Communication experiments around the game CoMaze.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/dasys-lab/comaze-python',
-    
     classifiers=[
-        'Intended Audience :: Developers',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence :: Reinforcement Learning',
-        'Programming Language :: Python'
+        "Intended Audience :: Developers",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence ",
+        "Programming Language :: Python :: 3",
     ],
 
     packages=find_packages(),
