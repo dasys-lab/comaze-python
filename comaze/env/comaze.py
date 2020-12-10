@@ -11,10 +11,10 @@ class CoMaze:
   else:
     API_URL = "http://teamwork.vs.uni-kassel.de:16216"
     WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
-  LIB_VERSION = "1.1.0"
+  LIB_VERSION = "1.3.0"
 
   def next_move(self, game, player):
-    return ":("
+    raise NotImplementedError
 
   def play_new_game(self, options={}):
     level = options.get("level", "1")
@@ -24,6 +24,7 @@ class CoMaze:
     self.play_existing_game(options)
 
   def play_existing_game(self, options={}):
+    print("playing existing game", options)
     if "look_for_player_name" in options:
       options["game_id"] = requests.get(self.API_URL + "/game/byPlayerName?playerName=" + options["look_for_player_name"]).json()["uuid"]
 
@@ -43,19 +44,35 @@ class CoMaze:
     while not game["state"]["over"]:
       game = requests.get(self.API_URL + "/game/" + game_id).json()
 
-      if not game["state"]["started"]:
+      while not game["state"]["started"]:
         print("Waiting for players. (Invite someone: " + self.WEBAPP_URL + "/?gameId=" + game_id + ")")
         time.sleep(3)
         continue
 
       if game["currentPlayer"]["uuid"] != player["uuid"]:
-        print("Not my turn. Waiting.")
-        time.sleep(1)
+        print(f"Not my turn. Waiting. (should be {game['currentPlayer']['uuid']}, but I am {player['uuid']}")
+        print("We have used " + str(game["usedMoves"]) + " moves so far.")
+        time.sleep(0.5)
         continue
 
-      direction = self.next_move(game, player)
-      print("Moving " + direction)
-      requests.post(self.API_URL + "/game/" + game_id + "/move?playerId=" + player["uuid"] + "&action=" + direction)
+      next_move = self.next_move(game, player)
+
+      # next_move can be a direction/skip string (maintaining compatibility with APIs <= 1.1) or a dict containing direction and an optional symbolMessage
+      action = None
+      symbol_message = None
+      if type(next_move) == str:
+        action = next_move
+      elif type(next_move) == dict:
+        action = next_move.get("action")
+        symbol_message = next_move.get("symbol_message")
+
+      print("Moving " + str(action))
+      request_url = self.API_URL + "/game/" + game_id + "/move"
+      request_url += "?playerId=" + player["uuid"]
+      request_url += "&action=" + action
+      if symbol_message:
+        request_url += "&symbolMessage=" + symbol_message
+      requests.post(request_url)
 
     if game["state"]["won"]:
       print("Game won!")
