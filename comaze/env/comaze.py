@@ -275,6 +275,7 @@ class TwoPlayersCoMazeGym(gym.Env):
       if self.verbose:  print(f"WARNING: Action {action} is not available to the current player.")
       action = "SKIP"
     if self.verbose:  print("Moving " + action)
+    
     if action == "SKIP":
       if self.verbose:  print(f'Wanted to send message {message}, but skipped.')
       message = None

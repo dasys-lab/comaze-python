@@ -80,6 +80,8 @@ class DictObsDiscreteActionExpExtractorClass(CoMazeGymDictObsActionWrapper):
     
     obs["previous_message"] = self._get_previous_message(game=game)
     
+    return obs 
+    """
     if game["state"]["won"]:
       reward = 1
     elif game["state"]["lost"]:
@@ -92,7 +94,7 @@ class DictObsDiscreteActionExpExtractorClass(CoMazeGymDictObsActionWrapper):
     infos = None
 
     return obs, reward, done, infos
-
+    """
 
 DictObsDiscreteActionExpExtractor = DictObsDiscreteActionExpExtractorClass()
 def dict_obs_discrete_action_extract_exp_fn(game, player):
@@ -108,19 +110,68 @@ def dict_obs_discrete_action_extract_exp_fn(game, player):
 class DiscreteActionFormatorClass(object):
   def __init__(self, vocab_size=10, maximum_sentence_length=1, options={}):
     self.nb_directions = 4
+    self.actionId2action =  ["LEFT", "RIGHT", "UP", "DOWN"]
+    
     self.vocab_size = vocab_size
     assert self.vocab_size == 10
+    self.id2token = {
+      0:"empty", 
+      1:"Q", 
+      2:"W", 
+      3:"E", 
+      4:"R", 
+      5:"T", 
+      6:"Y", 
+      7:"U", 
+      8:"I", 
+      9:"O", 
+      10:"P"
+    }
+    
     self.maximum_sentence_length = maximum_sentence_length
     assert self.maximum_sentence_length == 1
     
-    self.nb_possible_sentences = 1 # account for the empty string:
-    for pos in range(self.maximum_sentence_length):
-      self.nb_possible_sentences += (self.vocab_size)**(pos+1)
+    self._build_sentenceId2sentence()
     
     # Action Space:
     self.nb_possible_actions = self.nb_directions*self.nb_possible_sentences+1 
     # +1 accounts for the SKIP action...
     self.action_space = Discrete(self.nb_possible_actions)
+
+  def _build_sentenceId2sentence(self):
+    self.nb_possible_sentences = 1 # account for the empty string:
+    for pos in range(self.maximum_sentence_length):
+      self.nb_possible_sentences += (self.vocab_size)**(pos+1)
+    sentenceId2sentence = np.zeros( (self.nb_possible_sentences, self.maximum_sentence_length))
+    idx = 1
+    local_token_pointer = 0
+    global_token_pointer = 0
+    while idx != self.nb_possible_sentences:
+      sentenceId2sentence[idx] = sentenceId2sentence[idx-1]
+      sentenceId2sentence[idx][local_token_pointer] = (sentenceId2sentence[idx][local_token_pointer]+1)%(self.vocab_size+1)
+      
+      while sentenceId2sentence[idx][local_token_pointer] == 0:
+        # remove the possibility of an empty symbol on the left of actual tokens:
+        sentenceId2sentence[idx][local_token_pointer] += 1
+        local_token_pointer += 1
+        sentenceId2sentence[idx][local_token_pointer] = (sentenceId2sentence[idx][local_token_pointer]+1)%(self.vocab_size+1)
+      idx += 1
+      local_token_pointer = 0    
+    
+    self.sentenceId2sentence = sentenceId2sentence
+
+  def _get_message_from_sentence(self, sentence):
+    message = ''
+    for pos, sidx in enumerate(sentence):
+      # if empty symbol, then there is nothing on the right of it:
+      if sidx == 0: 
+        # if empty sentence:
+        if pos == 0:
+          message = None
+        break
+      token = self.id2token[sidx]
+      message += token
+    return message
 
   def format_move(self, action):
     if not self.action_space.contains(action):
@@ -137,13 +188,14 @@ class DiscreteActionFormatorClass(object):
       original_action_direction = "SKIP"
       original_action_message = None #self.sentenceId2sentence[0] #empty message.
     
-    if original_action_direction != "SKIP":
-      return original_action_direction
-
     rd = {
       'direction':original_action_direction,
-      'symbol_Message':original_action_message
     }
+
+    if original_action_direction == "SKIP":
+      return rd
+
+    rd['symbol_Message']=original_action_message
 
     return rd 
 
