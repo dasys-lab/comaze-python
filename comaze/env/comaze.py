@@ -286,12 +286,23 @@ class TwoPlayersCoMazeGym(gym.Env):
       if self.verbose:  
         print(f'Sending message {message}.')
     
+
     request_url = self._API_URL + "/game/" + self._game_id + "/move"
     request_url += "?playerId=" + self._agent_ids[self._time_index%2] #self.player_id
     request_url += "&action=" + action
     if message is not None and action != 'SKIP':
       request_url += "&symbolMessage=" + message
     if self.verbose:  print(request_url)
+    
+    # Now, this is where it gets complicated:
+    # If the directional move proposed by the 
+    # player is making the agent trying to go
+    # out of the arena, then the folluwing will
+    # return a JSONError that will be dealt the 
+    # following way:
+    # The directional move is invalid but it is
+    # still the current player's turn, so we 
+    # make it "SKIP".
     try:
       self.game = requests.post(request_url).json()
     except Exception as e:
@@ -299,8 +310,11 @@ class TwoPlayersCoMazeGym(gym.Env):
         #The agent is likely trying to move outside the arena.
         print(f"WARNING: {e.doc}")
       # Regularising the resulting game state:
-      self.game = requests.get(fetch_url).json()
-      #time.sleep(1)
+      skip_request_url = self._API_URL + "/game/" + self._game_id + "/move"
+      skip_request_url += "?playerId=" + self._agent_ids[self._time_index%2] #self.player_id
+      skip_request_url += "&action=SKIP"
+      self.game = requests.post(skip_request_url).json()
+    
     resulting_game_state = self.game["state"]
     if self.verbose:  print('---')
     
