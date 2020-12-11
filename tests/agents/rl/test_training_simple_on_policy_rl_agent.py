@@ -73,39 +73,39 @@ def two_players_environment_loop(
 
 
 def test_training_simple_on_policy_rl_agent():
-    agent1 = SimpleOnPolicyRLAgent( 
-      learning_rate=1e-4,
-      discount_factor=0.99,
-      num_actions=5,
-      pov_shape=[7,7,12],
+  agent1 = SimpleOnPolicyRLAgent( 
+    learning_rate=1e-4,
+    discount_factor=0.99,
+    num_actions=5,
+    pov_shape=[7,7,12],
+  )
+
+  agent2 = SimpleOnPolicyRLAgent( 
+    learning_rate=1e-4,
+    discount_factor=0.99,
+    num_actions=5,
+    pov_shape=[7,7,12],
+  )
+
+  max_episode_length = 50
+  nbr_training_episodes = 1000
+  verbose = False 
+
+  tbar = tqdm(total=nbr_training_episodes, position=0)
+  for episode in range(nbr_training_episodes):
+    tbar.update(1)
+    environment_kwargs = {
+        "level":"1",
+        "verbose":verbose,
+    }
+    environment = TwoPlayersCoMazeGym(**environment_kwargs)
+
+    two_players_environment_loop(
+        agent1=agent1,
+        agent2=agent2,
+        environment=environment,
+        max_episode_length=max_episode_length,
     )
-
-    agent2 = SimpleOnPolicyRLAgent( 
-      learning_rate=1e-4,
-      discount_factor=0.99,
-      num_actions=5,
-      pov_shape=[7,7,12],
-    )
-
-    max_episode_length = 50
-    nbr_training_episodes = 1000
-    verbose = False 
-
-    tbar = tqdm(total=nbr_training_episodes, position=0)
-    for episode in range(nbr_training_episodes):
-      tbar.update(1)
-      environment_kwargs = {
-          "level":"1",
-          "verbose":verbose,
-      }
-      environment = TwoPlayersCoMazeGym(**environment_kwargs)
-
-      two_players_environment_loop(
-          agent1=agent1,
-          agent2=agent2,
-          environment=environment,
-          max_episode_length=max_episode_length,
-      )
 
 if __name__ == "__main__":
-    test_training_simple_on_policy_rl_agent()
+  test_training_simple_on_policy_rl_agent()
