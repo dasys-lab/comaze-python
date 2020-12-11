@@ -3,7 +3,6 @@ from typing import Dict
 from typing import Callable
 from typing import Optional
 
-import gym
 import torch 
 import torch.nn as nn
 
@@ -43,8 +42,6 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
     format_move_fn: Callable[..., Dict[str,str]]=discrete_direction_only_format_move_fn,
     learning_rate: float=1e-4,
     discount_factor: float=0.99,
-    environment: Optional[gym.Env]=None, 
-    agent_order: int=0, 
     ) -> None:
     """
     Initializes the agent.
@@ -52,23 +49,12 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
     super(AbstractOnPolicyRLAgent, self).__init__(
       extract_exp_fn=extract_exp_fn,
       format_move_fn=format_move_fn,
-      agent_order=agent_order,
-      environment=environment,
     )
 
     self.learning_rate = learning_rate
     self.discount_factor = discount_factor
 
     self._episode_reset()
-
-
-  def set_environment(self, environment: gym.Env, agent_order: int):
-    self._environment = environment
-    assert agent_order in (0, 1)
-    self._agent_order = agent_order
-
-    if len(self.episode_rewards):
-      self.optimize()
 
   def _episode_reset(self):
     """

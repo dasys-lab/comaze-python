@@ -4,8 +4,6 @@ from typing import Dict
 from typing import Callable
 from typing import Optional
 
-import gym
-
 from comaze.agents.utils import dummy_extract_exp_fn, dummy_format_move_fn
 
 # Type definitions.
@@ -25,8 +23,6 @@ class AbstractAgent(abc.ABC):
     self, 
     extract_exp_fn: Callable[..., Any]=dummy_extract_exp_fn, 
     format_move_fn: Callable[..., Dict[str,str]]=dummy_format_move_fn,
-    agent_order: int=0, 
-    environment: Optional[gym.Env]=None, 
     ) -> None:
     """
     Initializes the agent.
@@ -45,21 +41,12 @@ class AbstractAgent(abc.ABC):
       9:"O", 
       10:"P"
     }
-    
-    self._environment = environment
-    assert agent_order in (0, 1)
-    self._agent_order = agent_order
 
     self.extract_exp_fn = extract_exp_fn
     self.format_move_fn = format_move_fn
 
     self.bookkeeping_dict = {}
 
-  def set_environment(self, environment: gym.Env, agent_order: int):
-    self._environment = environment
-    assert agent_order in (0, 1)
-    self._agent_order = agent_order
-  
   def update(self, last_action, new_observation, reward, done) -> None:
     """
     Optional callback update function after env.step().

@@ -19,14 +19,8 @@ def two_players_environment_loop(
   """
   Loop runner for the environment.
   """
-
   # Setup environment.
-  #environment = TwoPlayersCoMazeGym(**environment_kwargs)
   state = environment.reset()
-
-  # Initialize agents.
-  agent1.set_environment(environment=environment, agent_order=0)
-  agent2.set_environment(environment=environment, agent_order=1)
 
   # Book-keeping.
   t = 0

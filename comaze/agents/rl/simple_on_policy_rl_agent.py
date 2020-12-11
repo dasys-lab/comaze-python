@@ -42,8 +42,6 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
     discount_factor: float=0.99,
     num_actions: int=5,
     pov_shape: List[int]=[7,7,12],
-    agent_order: int=0, 
-    environment: Optional[gym.Env]=None,
     use_cuda: Optional[Any]=False,
     ) -> None:
     """
@@ -56,8 +54,6 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
       format_move_fn=discrete_direction_only_format_move_fn,
       learning_rate=learning_rate,
       discount_factor=discount_factor,
-      agent_order=agent_order,
-      environment=environment,
     )
 
     self.num_actions = num_actions
