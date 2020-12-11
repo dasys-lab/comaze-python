@@ -7,7 +7,7 @@ from tqdm import tqdm
 from tensorboardX import SummaryWriter 
 
 from comaze.env import TwoPlayersCoMazeGym
-from comaze.agents import AbstractAgent, SimpleCommunicatingOnPolicyRLAgent
+from comaze.agents import AbstractAgent, SimpleOnPolicyRLAgent, SimpleCommunicatingOnPolicyRLAgent
 
 
 def two_players_environment_loop(
@@ -63,7 +63,7 @@ def two_players_environment_loop(
   return cum_reward, trajectory
 
 def test_training_simple_communicating_on_policy_rl_agent():
-  use_cuda = True 
+  use_cuda = False 
   sparse_reward = False
 
   agent1 = SimpleCommunicatingOnPolicyRLAgent( 
@@ -74,10 +74,10 @@ def test_training_simple_communicating_on_policy_rl_agent():
     use_cuda=use_cuda,
   )
 
-  agent2 = SimpleCommunicatingOnPolicyRLAgent( 
+  agent2 = SimpleOnPolicyRLAgent( 
     learning_rate=1e-4,
     discount_factor=0.99,
-    num_actions=4*(10+1)+1,
+    num_actions=5,
     pov_shape=[7,7,12],
     use_cuda=use_cuda,
   )
@@ -96,6 +96,10 @@ def test_training_simple_communicating_on_policy_rl_agent():
         "level":"1",
         "sparse_reward":sparse_reward,
         "verbose":verbose,
+        "agent_names": [
+          agent1.agent_id,
+          agent2.agent_id,
+        ]
     }
     environment = TwoPlayersCoMazeGym(**environment_kwargs)
 
@@ -105,6 +109,9 @@ def test_training_simple_communicating_on_policy_rl_agent():
         environment=environment,
         max_episode_length=max_episode_length,
     )
+
+    agent1.save()
+    agent2.save()
 
     logger.add_scalar("Training/EpisodeCumulativeReward", episode_cum_reward, episode)
     logger.add_scalar("Training/NbrSteps", len(trajectory), episode)

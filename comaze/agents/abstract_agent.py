@@ -4,6 +4,7 @@ from typing import Dict
 from typing import Callable
 from typing import Optional
 
+import pickle
 from comaze.agents.utils import dummy_extract_exp_fn, dummy_format_move_fn
 
 # Type definitions.
@@ -44,22 +45,38 @@ class AbstractAgent(abc.ABC):
 
     self.extract_exp_fn = extract_exp_fn
     self.format_move_fn = format_move_fn
-
+    
     self.bookkeeping_dict = {}
+
+  @property
+  @abc.abstractproperty
+  def agent_id(self) -> str:
+    """
+    Please provide the teamID you have been given at registration time,
+    and add a prefix of your choice.
+    The resulting form should be:
+    return "prefix-teamID"
+    """
+
+  def save(self):
+    try:
+      save_path = f"./{self.agent_id}.player"
+      pickle.dump(self, open(save_path, 'wb'))
+      print(f"Agent saved successfully at {save_path} .")
+      return True
+    except Exception as e:
+      print(e)
+      print("Agent was NOT save, please investigate:")
+      import ipdb; ipdb.set_trace()
+
+    return False
 
   def update(self, last_action, new_observation, reward, done) -> None:
     """
     Optional callback update function after env.step().
     """
     pass
-
-  @property
-  @abc.abstractproperty
-  def agent_id(self) -> str:
-    """
-    User-defined agent unique idea (try to be creative to avoid collisions).
-    """
-
+  
   def select_move(self, observation: Observation) -> Action:
     """
     Returns agent's move in server-friendly format, 

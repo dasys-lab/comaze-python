@@ -212,6 +212,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     level: Optional[str]=None, 
     verbose: Optional[Any]=False, 
     sparse_reward: Optional[Any]=False,
+    agent_names: List[Any]=[None, None],
     ) -> None:
     """
     Initializes an environment.
@@ -224,6 +225,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     self.game = None
     self.verbose = verbose
     self._sparse_reward = sparse_reward
+    self._agent_names = agent_names
     self.reached_goals = 0
   
   @property
@@ -244,7 +246,8 @@ class TwoPlayersCoMazeGym(gym.Env):
     ).json()["uuid"]
     for i in range(2): # We assume two-players games only.
       player = requests.post(
-        self._API_URL + "/game/" + self._game_id + "/attend?playerName=agent_".format(i)).json()
+        self._API_URL + "/game/" + self._game_id + f"/attend?playerName={self._agent_names[i]}"
+      ).json()
       self._agent_ids[i] = player["uuid"]
       self._action_spaces[i] = player["directions"] + ["SKIP"]
     self._time_index = 0

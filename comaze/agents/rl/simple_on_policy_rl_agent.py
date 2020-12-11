@@ -65,7 +65,13 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
   
   @property
   def agent_id(self) -> str:
-    return "simple_onpolicy_rlagent"
+    """
+    Please provide the teamID you have been given at registration time,
+    and add a prefix of your choice.
+    The resulting form should be:
+    return "prefix-teamID"
+    """
+    return "simpleOnPolicyRLagent-testTeamID"
   
   def build_agent(self):
     self.embed_pov_size = 256

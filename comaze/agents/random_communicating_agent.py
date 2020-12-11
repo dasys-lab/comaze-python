@@ -7,7 +7,7 @@ from .abstract_agent import AbstractAgent, Observation, Action
 class RandomCommunicatingAgent(AbstractAgent):
   @property
   def agent_id(self) -> str:
-    return "random"
+    return "randomComm-testTeamID"
   
   def select_action(self, observation: Any) -> Dict[str, Any]:
     """
