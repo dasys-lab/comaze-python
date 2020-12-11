@@ -63,7 +63,7 @@ def two_players_environment_loop(
   return cum_reward, trajectory
 
 def test_training_simple_communicating_on_policy_rl_agent():
-  use_cuda = True 
+  use_cuda = False 
   sparse_reward = False
 
   agent1 = SimpleCommunicatingOnPolicyRLAgent( 
