@@ -1,6 +1,7 @@
 from typing import Any
 from typing import Dict
 from typing import Callable
+from typing import Optional
 
 import gym
 import torch 
@@ -38,27 +39,36 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
 
   def __init__(
     self, 
-    environment: gym.Env, 
-    agent_order: int, 
     extract_exp_fn: Callable[..., Any]=dict_encoded_pov_avail_moves_extract_exp_fn, 
     format_move_fn: Callable[..., Dict[str,str]]=discrete_direction_only_format_move_fn,
     learning_rate: float=1e-4,
-    discount_factor: float=0.99
+    discount_factor: float=0.99,
+    environment: Optional[gym.Env]=None, 
+    agent_order: int=0, 
     ) -> None:
     """
     Initializes the agent.
     """
     super(AbstractOnPolicyRLAgent, self).__init__(
-      environment=environment,
-      agent_order=agent_order,
       extract_exp_fn=extract_exp_fn,
-      format_move_fn=format_move_fn
+      format_move_fn=format_move_fn,
+      agent_order=agent_order,
+      environment=environment,
     )
 
     self.learning_rate = learning_rate
     self.discount_factor = discount_factor
 
     self._episode_reset()
+
+
+  def set_environment(self, environment: gym.Env, agent_order: int):
+    self._environment = environment
+    assert agent_order in (0, 1)
+    self._agent_order = agent_order
+
+    if len(self.episode_rewards):
+      self.optimize()
 
   def _episode_reset(self):
     """
@@ -74,14 +84,14 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
     R = 0
     
     for r in reversed(rewards):
-        R = r + R * discount_factor
-        returns.insert(0, R)
-        
+      R = r + R * discount_factor
+      returns.insert(0, R)
+      
     returns = torch.tensor(returns)
     
     if normalize:
-        returns = (returns - returns.mean()) / returns.std()
-
+      returns = (returns - returns.mean()) / returns.std()
+    
     return returns  
 
   def init_rl_algo(self):
@@ -90,7 +100,8 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
   def optimize(self):
 
     log_prob_actions = torch.cat(self.episode_log_prob_actions)
-    returns = self._calculate_returns(self.episode_rewards, self.discount_factor).detach()
+    with torch.no_grad():
+      returns = self._calculate_returns(self.episode_rewards, self.discount_factor).detach()
     loss = - (returns * log_prob_actions).sum()
 
     self.optimizer.zero_grad()
@@ -107,12 +118,13 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
     Updates the agent in an on-policy fashion.
     Callback made after env.step().
     """
-    log_prob_action = self.bookkeeping_dict["action_dict"].get("log_prob_action", None)
-    if log_prob_action is None:
-      raise Exception("You must provide an entry 'log_prob_action' in the output dict of select_action.")
-    self.episode_log_prob_actions.append(log_prob_action)
-    self.episode_rewards.append(reward)
+    if len(self.bookkeeping_dict.keys()):
+      log_prob_action = self.bookkeeping_dict["action_dict"].get("log_prob_action", None)
+      if log_prob_action is None:
+        raise Exception("You must provide an entry 'log_prob_action' in the output dict of select_action.")
+      self.episode_log_prob_actions.append(log_prob_action)
+      self.episode_rewards.append(reward)
 
-    if done:
-      self.optimize()
-    
+      if done:
+        self.optimize()
+      

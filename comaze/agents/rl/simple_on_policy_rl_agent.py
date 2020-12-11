@@ -2,6 +2,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Callable
+from typing import Optional
 
 import numpy as np 
 
@@ -37,12 +38,12 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
 
   def __init__(
     self, 
-    environment: gym.Env, 
-    agent_order: int, 
     learning_rate: float=1e-4,
     discount_factor: float=0.99,
     num_actions: int=5,
     pov_shape: List[int]=[7,7,12],
+    agent_order: int=0, 
+    environment: Optional[gym.Env]=None, 
     ) -> None:
     """
     Initializes the agent.
@@ -50,12 +51,12 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
     nn.Module.__init__(self=self)
     AbstractOnPolicyRLAgent.__init__(
       self=self,
-      environment=environment,
-      agent_order=agent_order,
       extract_exp_fn=dict_encoded_pov_avail_moves_extract_exp_fn, 
       format_move_fn=discrete_direction_only_format_move_fn,
       learning_rate=learning_rate,
       discount_factor=discount_factor,
+      agent_order=agent_order,
+      environment=environment,
     )
 
     self.num_actions = num_actions
@@ -63,7 +64,7 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
     self.build_agent()
     
     self.init_rl_algo()
-
+  
   @property
   def agent_id(self) -> str:
     return "simple_onpolicy_rlagent"

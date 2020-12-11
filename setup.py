@@ -16,18 +16,21 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/dasys-lab/comaze-python',
     classifiers=[
-        "Intended Audience :: Developers",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence ",
-        "Programming Language :: Python :: 3",
+      "Intended Audience :: Developers",
+      "Topic :: Scientific/Engineering :: Artificial Intelligence ",
+      "Programming Language :: Python :: 3",
     ],
 
     packages=find_packages(),
     zip_safe=False,
 
-    install_requires=['gym',
-                      'tensorboardx',
-                      'torch',
-                      'torchvision'],
+    install_requires=[
+      'tqdm',
+      'gym',
+      'tensorboardx',
+      'torch',
+      'torchvision'
+    ],
 
     python_requires=">=3.6",
 )

@@ -207,7 +207,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     _WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
   _LIB_VERSION = "1.3.0"
 
-  def __init__(self, level: Optional[str]=None) -> None:
+  def __init__(self, level: Optional[str]=None, verbose: Optional[Any]=False) -> None:
     """
     Initializes an environment.
     """
@@ -217,6 +217,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     self._game_id = None
     self._time_index = -1
     self.game = None
+    self.verbose = verbose
   
   @property
   def action_space(self) -> List[gym.spaces.Space]:
@@ -252,40 +253,41 @@ class TwoPlayersCoMazeGym(gym.Env):
     action = action.get("direction", "SKIP")
 
     # Fetch game json:
-    print('---')
+    if self.verbose:  print('---')
     fetch_url = self._API_URL + "/game/" + self._game_id
     self.game = requests.get(fetch_url).json()
     ## game state:
     game_state = self.game["state"]
     assert game_state["started"]
-    print(self._time_index, game_state)
+    if self.verbose:  print(self._time_index, game_state)
 
     # Apply action:
     ## Verify action is compatible:
     available_actions = self.game["currentPlayer"]["directions"]+["SKIP"]
     if action not in available_actions:
-      print(f"WARNING: Action {action} is not available to the current player.")
+      if self.verbose:  print(f"WARNING: Action {action} is not available to the current player.")
       action = "SKIP"
-    print("Moving " + action)
+    if self.verbose:  print("Moving " + action)
     if action == "SKIP":
-      print(f'Wanted to send message {message}, but skipped.')
+      if self.verbose:  print(f'Wanted to send message {message}, but skipped.')
       message = None
     else:
-      print(f'Sending message {message}.')
+      if self.verbose:  
+        print(f'Sending message {message}.')
     
     request_url = self._API_URL + "/game/" + self._game_id + "/move"
     request_url += "?playerId=" + self._agent_ids[self._time_index%2] #self.player_id
     request_url += "&action=" + action
     if message is not None and action != 'SKIP':
       request_url += "&symbolMessage=" + message
-    print(request_url)
+    if self.verbose:  print(request_url)
     try:
       self.game = requests.post(request_url).json()
     except Exception as e:
-      print(f"WARNING: {e}")
+      if self.verbose:  print(f"WARNING: {e}")
       time.sleep(1)
     resulting_game_state = self.game["state"]
-    print('---')
+    if self.verbose:  print('---')
     
     # Book-keeping.
     self._time_index = self._time_index + 1
@@ -294,7 +296,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     if resulting_game_state ["won"]:
       reward = 1
     elif resulting_game_state ["lost"]:
-      print("Game lost (" + resulting_game_state["lostMessage"] + ").")
+      if self.verbose:  print("Game lost (" + resulting_game_state["lostMessage"] + ").")
       reward = -1
     else:
       reward = 0
