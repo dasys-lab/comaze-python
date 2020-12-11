@@ -192,7 +192,7 @@ class CoMazeGym(gym.Env):
 
 # Type definitions.
 Observation = Dict[str, Any]
-Action = str
+Action = Dict[str, str]
 
 
 class TwoPlayersCoMazeGym(gym.Env):
@@ -243,11 +243,13 @@ class TwoPlayersCoMazeGym(gym.Env):
     
     return requests.get(self._API_URL + "/game/" + self._game_id).json()
   
-  def step(self, action: str, message: str=None) -> Tuple[Observation, float, bool, Any]:
+  def step(self, action: Dict[str, str]) -> Tuple[Observation, float, bool, Any]:
     """
     Performs a single step in the environment.
     """
     #assert action in self.action_space[self._time_index%2]
+    message = action.get("symbol_Message", None)
+    action = action.get("direction", "SKIP")
 
     # Fetch game json:
     print('---')
@@ -257,6 +259,7 @@ class TwoPlayersCoMazeGym(gym.Env):
     game_state = self.game["state"]
     assert game_state["started"]
     print(self._time_index, game_state)
+
     # Apply action:
     ## Verify action is compatible:
     available_actions = self.game["currentPlayer"]["directions"]+["SKIP"]

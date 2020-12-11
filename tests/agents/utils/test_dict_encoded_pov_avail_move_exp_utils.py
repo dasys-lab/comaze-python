@@ -2,9 +2,11 @@ import random
 from typing import Callable
 import pandas as pd 
 
-from comaze.env import TwoPlayersCoMazeGym
-from comaze.agents import AbstractAgent, RandomAgent, RandomCommunicatingAgent
+from functools import partial
 
+from comaze.env import TwoPlayersCoMazeGym
+from comaze.agents import AbstractAgent, SimpleOnPolicyRLAgent
+from comaze.agents.utils import dict_encoded_pov_avail_moves_extract_exp_fn, discrete_direction_only_format_move_fn
 
 def two_players_environment_loop(
     agent1_fn: Callable[..., AbstractAgent],
@@ -20,8 +22,8 @@ def two_players_environment_loop(
   state = environment.reset()
 
   # Initialize agents.
-  agent1 = agent1_fn(environment, agent_order=0)
-  agent2 = agent2_fn(environment, agent_order=1)
+  agent1 = agent1_fn(environment=environment, agent_order=0)
+  agent2 = agent2_fn(environment=environment, agent_order=1)
 
   # Book-keeping.
   t = 0
@@ -46,6 +48,7 @@ def two_players_environment_loop(
       agent1.update(move, next_state, reward, done)
     else:
       agent2.update(move, next_state, reward, done)
+    
     # Book-keeping.
     t = t + 1
     state = next_state
@@ -56,9 +59,26 @@ def two_players_environment_loop(
   )
 
 
-def test_TwoPlayersCoMazeGym():
-    agent1_fn = RandomAgent
-    agent2_fn = RandomCommunicatingAgent
+def test_dict_encoded_pov_avail_move_exp_utils():
+    agent1_fn = partial(
+      SimpleOnPolicyRLAgent, 
+      learning_rate=1e-4,
+      discount_factor=0.99,
+      num_actions=5,
+      pov_shape=[7,7,12],
+      #extract_exp_fn=dict_encoded_pov_avail_moves_extract_exp_fn,
+      #format_move_fn=discrete_direction_only_format_move_fn,
+    )
+    agent2_fn = partial(
+      SimpleOnPolicyRLAgent, 
+      learning_rate=1e-4,
+      discount_factor=0.99,
+      num_actions=5,
+      pov_shape=[7,7,12],
+      #extract_exp_fn=dict_encoded_pov_avail_moves_extract_exp_fn,
+      #format_move_fn=discrete_direction_only_format_move_fn,
+    )
+
     environment_kwargs = {
         "level":"1",
     }
@@ -71,4 +91,4 @@ def test_TwoPlayersCoMazeGym():
     )
 
 if __name__ == "__main__":
-    test_TwoPlayersCoMazeGym()
+    test_dict_encoded_pov_avail_move_exp_utils()
