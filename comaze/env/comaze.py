@@ -207,7 +207,12 @@ class TwoPlayersCoMazeGym(gym.Env):
     _WEBAPP_URL = "http://teamwork.vs.uni-kassel.de"
   _LIB_VERSION = "1.3.0"
 
-  def __init__(self, level: Optional[str]=None, verbose: Optional[Any]=False) -> None:
+  def __init__(
+    self, 
+    level: Optional[str]=None, 
+    verbose: Optional[Any]=False, 
+    sparse_reward: Optional[Any]=False,
+    ) -> None:
     """
     Initializes an environment.
     """
@@ -218,6 +223,8 @@ class TwoPlayersCoMazeGym(gym.Env):
     self._time_index = -1
     self.game = None
     self.verbose = verbose
+    self._sparse_reward = sparse_reward
+    self.reached_goals = 0
   
   @property
   def action_space(self) -> List[gym.spaces.Space]:
@@ -284,8 +291,12 @@ class TwoPlayersCoMazeGym(gym.Env):
     try:
       self.game = requests.post(request_url).json()
     except Exception as e:
-      if self.verbose:  print(f"WARNING: {e}")
-      time.sleep(1)
+      if self.verbose:  
+        #The agent is likely trying to move outside the arena.
+        print(f"WARNING: {e.doc}")
+      # Regularising the resulting game state:
+      self.game = requests.get(fetch_url).json()
+      #time.sleep(1)
     resulting_game_state = self.game["state"]
     if self.verbose:  print('---')
     
@@ -293,12 +304,25 @@ class TwoPlayersCoMazeGym(gym.Env):
     self._time_index = self._time_index + 1
 
     # Calculate reward.
-    if resulting_game_state ["won"]:
-      reward = 1
-    elif resulting_game_state ["lost"]:
-      if self.verbose:  print("Game lost (" + resulting_game_state["lostMessage"] + ").")
-      reward = -1
+    reward = 0
+    if self._sparse_reward:
+      if resulting_game_state ["won"]:
+        reward = 1
+      elif resulting_game_state ["lost"]:
+        if self.verbose:  print("Game lost (" + resulting_game_state["lostMessage"] + ").")
+        reward = -1
     else:
-      reward = 0
+      reached_goals = 4-len(self.game["unreachedGoals"])
+      if reached_goals != self.reached_goals:
+        self.reached_goals = reached_goals
+        reward = 1
+      else:
+        reward = -0.1
+
+      if resulting_game_state ["won"]:
+        reward += 4
+      elif resulting_game_state ["lost"]:
+        if self.verbose:  print("Game lost (" + resulting_game_state["lostMessage"] + ").")
+        reward -= 4
 
     return copy.deepcopy(self.game), reward, resulting_game_state["over"], None

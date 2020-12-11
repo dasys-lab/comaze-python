@@ -4,6 +4,7 @@ import pandas as pd
 
 from functools import partial
 from tqdm import tqdm 
+from tensorboardX import SummaryWriter 
 
 from comaze.env import TwoPlayersCoMazeGym
 from comaze.agents import AbstractAgent, SimpleOnPolicyRLAgent
@@ -31,6 +32,7 @@ def two_players_environment_loop(
   t = 0
   done = False
   trajectory = list()
+  cum_reward = 0
 
   ebar = tqdm(total=max_episode_length, position=1)
   while not done and t<=max_episode_length:
@@ -44,24 +46,17 @@ def two_players_environment_loop(
     # Progress simulation.
     next_state, reward, done, info = environment.step(move)
 
-    # Used for logging.
-    trajectory.append((t, state, move, reward, next_state, done, info))
-
-    # Agent internals.
-    """
-    if t%2 == 0:
-      agent1.update(move, next_state, reward, done)
-    else:
-      agent2.update(move, next_state, reward, done)
-    """
     if t==max_episode_length:
       done = True
-      reward = -1
-    
+      reward += -1
+
     for agent in [agent1, agent2]:
       agent.update(move, next_state, reward, done)
 
     # Book-keeping.
+    trajectory.append((t, state, move, reward, next_state, done, info))
+
+    cum_reward += reward
     t = t + 1
     state = next_state
   
@@ -71,13 +66,18 @@ def two_players_environment_loop(
       agent1.agent_id, agent2.agent_id)
   )
 
+  return cum_reward, trajectory
 
 def test_training_simple_on_policy_rl_agent():
+  use_cuda = True 
+  sparse_reward = False
+
   agent1 = SimpleOnPolicyRLAgent( 
     learning_rate=1e-4,
     discount_factor=0.99,
     num_actions=5,
     pov_shape=[7,7,12],
+    use_cuda=use_cuda,
   )
 
   agent2 = SimpleOnPolicyRLAgent( 
@@ -85,7 +85,11 @@ def test_training_simple_on_policy_rl_agent():
     discount_factor=0.99,
     num_actions=5,
     pov_shape=[7,7,12],
+    use_cuda=use_cuda,
   )
+
+  logging_path = './test_training.log'
+  logger = SummaryWriter(logging_path)
 
   max_episode_length = 50
   nbr_training_episodes = 1000
@@ -96,16 +100,21 @@ def test_training_simple_on_policy_rl_agent():
     tbar.update(1)
     environment_kwargs = {
         "level":"1",
+        "sparse_reward":sparse_reward,
         "verbose":verbose,
     }
     environment = TwoPlayersCoMazeGym(**environment_kwargs)
 
-    two_players_environment_loop(
+    episode_cum_reward, trajectory = two_players_environment_loop(
         agent1=agent1,
         agent2=agent2,
         environment=environment,
         max_episode_length=max_episode_length,
     )
+
+    logger.add_scalar("Training/EpisodeCumulativeReward", episode_cum_reward, episode)
+    logger.add_scalar("Training/NbrSteps", len(trajectory), episode)
+    logger.flush()
 
 if __name__ == "__main__":
   test_training_simple_on_policy_rl_agent()

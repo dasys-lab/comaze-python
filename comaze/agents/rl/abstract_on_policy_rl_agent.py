@@ -98,14 +98,13 @@ class AbstractOnPolicyRLAgent(AbstractAgent, nn.Module):
     self.optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate)
 
   def optimize(self):
-
     log_prob_actions = torch.cat(self.episode_log_prob_actions)
     with torch.no_grad():
       returns = self._calculate_returns(self.episode_rewards, self.discount_factor).detach()
-    loss = - (returns * log_prob_actions).sum()
+    loss = - (returns.to(log_prob_actions.device) * log_prob_actions).sum()
 
     self.optimizer.zero_grad()
-    loss.backward()
+    loss.backward(retain_graph=True)
     self.optimizer.step()
     
     print(f'Loss {loss} :: EP reward {sum(self.episode_rewards)}')

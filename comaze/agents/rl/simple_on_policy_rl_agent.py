@@ -43,7 +43,8 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
     num_actions: int=5,
     pov_shape: List[int]=[7,7,12],
     agent_order: int=0, 
-    environment: Optional[gym.Env]=None, 
+    environment: Optional[gym.Env]=None,
+    use_cuda: Optional[Any]=False,
     ) -> None:
     """
     Initializes the agent.
@@ -61,6 +62,7 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
 
     self.num_actions = num_actions
     self.pov_shape = pov_shape
+    self.use_cuda = use_cuda
     self.build_agent()
     
     self.init_rl_algo()
@@ -88,7 +90,10 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
     
     policy_input_size = self.embed_pov_size+self.embed_action_size
     self.policy = nn.Linear(policy_input_size, self.num_actions)
-  
+    
+    if self.use_cuda:
+      self.cuda()
+
   def get_formatted_inputs(self, obs):
     nobs = {}
     for k,v in obs.items():
@@ -97,7 +102,7 @@ class SimpleOnPolicyRLAgent(AbstractOnPolicyRLAgent):
         assert len(v.shape)==3
         v = np.transpose(v, (2,0,1))
       nv = torch.from_numpy(v).unsqueeze(0).float()
-      nobs[k] = nv
+      nobs[k] = nv.cuda() if self.use_cuda else nv
     return nobs
 
   def select_action(self, observation: Any) -> Dict[str, Any]:
