@@ -4,7 +4,6 @@ import pandas as pd
 
 from functools import partial
 from tqdm import tqdm 
-from tensorboardX import SummaryWriter 
 
 from comaze.env import TwoPlayersCoMazeGym
 from comaze.agents import AbstractAgent, RandomAgent, RuleBasedAgent
@@ -77,33 +76,27 @@ def test_rule_based_agent():
   nbr_training_episodes = 1000
   verbose = False
 
-  tbar = tqdm(total=nbr_training_episodes, position=0)
-  for episode in range(nbr_training_episodes):
-    tbar.update(1)
-    environment_kwargs = {
-        "level":"1",
-        "sparse_reward":sparse_reward,
-        "verbose":verbose,
-        "agent_names": [
-          agent1.agent_id,
-          agent2.agent_id,
-        ]
-    }
-    environment = TwoPlayersCoMazeGym(**environment_kwargs)
+  environment_kwargs = {
+    "level":"1",
+    "sparse_reward":sparse_reward,
+    "verbose":verbose,
+    "agent_names": [
+      agent1.agent_id,
+      agent2.agent_id,
+    ]
+  }
+  
+  environment = TwoPlayersCoMazeGym(**environment_kwargs)
 
-    episode_cum_reward, trajectory = two_players_environment_loop(
-        agent1=agent1,
-        agent2=agent2,
-        environment=environment,
-        max_episode_length=max_episode_length,
-    )
+  episode_cum_reward, trajectory = two_players_environment_loop(
+    agent1=agent1,
+    agent2=agent2,
+    environment=environment,
+    max_episode_length=max_episode_length,
+  )
 
-    agent1.save()
-    agent2.save()
-
-    logger.add_scalar("Training/EpisodeCumulativeReward", episode_cum_reward, episode)
-    logger.add_scalar("Training/NbrSteps", len(trajectory), episode)
-    logger.flush()
+  agent1.save()
+  agent2.save()
 
 if __name__ == "__main__":
   test_rule_based_agent()
